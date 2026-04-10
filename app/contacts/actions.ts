@@ -39,3 +39,24 @@ export async function updateContactStatus(
   revalidatePath("/contacts");
   return {};
 }
+
+// contactsテーブルから指定IDの行を物理削除する Server Action
+// 成功時は {}、失敗時は { error: string } を返す
+export async function deleteContact(
+  id: string
+): Promise<{ error?: string }> {
+  // Supabase で該当行を削除
+  const { error } = await supabase
+    .from("contacts")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("deleteContact error:", error);
+    return { error: error.message };
+  }
+
+  // 一覧ページのキャッシュを無効化 → Server Component が再取得される
+  revalidatePath("/contacts");
+  return {};
+}
