@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import type { Contact } from "@/types/contact";
 import StatusSelect from "./StatusSelect";
+import DeleteButton from "./DeleteButton";
 
 // Server Component として実行
 // → サーバー側で直接Supabaseに問い合わせるため、anon keyがクライアントに不要なロジックを通らずに済み高速
@@ -50,6 +51,7 @@ export default async function ContactsPage() {
               <th className="border px-3 py-2 text-left">Message</th>
               <th className="border px-3 py-2 text-left">Status</th>
               <th className="border px-3 py-2 text-left">Created At</th>
+              <th className="border px-3 py-2 text-left">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -64,6 +66,9 @@ export default async function ContactsPage() {
                   <StatusSelect contactId={c.id} status={c.status} />
                 </td>
                 <td className="border px-3 py-2">{c.created_at}</td>
+                <td className="border px-3 py-2">
+                  <DeleteButton contactId={c.id} />
+                </td>
               </tr>
             ))}
           </tbody>
