@@ -8,6 +8,11 @@
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
 import type { ContactStatus } from "@/types/contact";
+import {
+  validateContactInput,
+  type ContactInput,
+  type ContactErrors,
+} from "@/lib/contactValidation";
 
 // 許可するステータス値。Server Action は POST で直接叩けるため
 // 二重防御として値のバリデーションをサーバー側でも行う。
@@ -57,6 +62,44 @@ export async function deleteContact(
   }
 
   // 一覧ページのキャッシュを無効化 → Server Component が再取得される
+  revalidatePath("/contacts");
+  return {};
+}
+
+// contactsテーブルに新規問い合わせを insert する Server Action
+// 成功時は {}、フィールド別エラーは { fieldErrors }、システムエラーは { error } を返す。
+// クライアント側でもバリデーションするが、POSTで直接叩かれた場合に備え、
+// サーバー側でも同じ関数で再チェックする（二重防御）。
+export async function createContact(
+  input: ContactInput
+): Promise<{ error?: string; fieldErrors?: ContactErrors }> {
+  // 1. サーバー側バリデーション
+  //    lib/contactValidation.ts の同じ関数を使うのでルールは1箇所だけ。
+  const fieldErrors = validateContactInput(input);
+  if (Object.keys(fieldErrors).length > 0) {
+    return { fieldErrors };
+  }
+
+  // 2. status はサーバー側で固定値を付与する
+  //    クライアントから任意の status を送らせない（POSTで直接叩かれても
+  //    "未対応" 以外で登録されないようにする）。
+  //    input を spread せず4フィールドを明示するのも同じ防御意図
+  //    （余計なキーが混入しても insert に渡らない）。
+  const { error } = await supabase.from("contacts").insert({
+    name: input.name,
+    email: input.email,
+    subject: input.subject,
+    message: input.message,
+    status: "未対応",
+  });
+
+  if (error) {
+    // Supabase の内部エラー詳細は訪問者に見せず、内部ログにだけ残す
+    console.error("createContact error:", error);
+    return { error: "送信に失敗しました。時間をおいて再度お試しください。" };
+  }
+
+  // 3. 管理ダッシュボードのキャッシュを無効化 → 次回アクセスで新着反映
   revalidatePath("/contacts");
   return {};
 }
