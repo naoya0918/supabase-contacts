@@ -7,72 +7,86 @@ import DeleteButton from "./DeleteButton";
 // → サーバー側で直接Supabaseに問い合わせるため、anon keyがクライアントに不要なロジックを通らずに済み高速
 export default async function ContactsPage() {
   // contactsテーブル全件を作成日時の降順で取得
-  // select('*') は全カラム取得。必要に応じて絞ることも可能
   const { data, error } = await supabase
     .from("contacts")
     .select("*")
     .order("created_at", { ascending: false });
 
-  // エラー時はメッセージ表示。コンソールにも出力して開発時に確認しやすくする
+  // エラー時はメッセージ表示
   if (error) {
     console.error("Supabase fetch error:", error);
     return (
-      <main className="p-8">
-        <h1 className="text-2xl font-bold mb-4">Contacts</h1>
-        <p className="text-red-600">エラーが発生しました: {error.message}</p>
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h1 className="text-xl font-bold text-slate-800">問い合わせ管理</h1>
+        <p className="text-red-500 mt-4">エラーが発生しました: {error.message}</p>
       </main>
     );
   }
 
   const contacts = (data ?? []) as Contact[];
 
+  // 統計用: 未対応の件数をカウント
+  const pendingCount = contacts.filter((c) => c.status === "未対応").length;
+
   // データなしの場合の表示
   if (contacts.length === 0) {
     return (
-      <main className="p-8">
-        <h1 className="text-2xl font-bold mb-4">Contacts</h1>
-        <p>データがありません</p>
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h1 className="text-xl font-bold text-slate-800">問い合わせ管理</h1>
+        <p className="text-slate-500 mt-4">データがありません</p>
       </main>
     );
   }
 
-  // 一覧を表形式でレンダリング
   return (
-    <main className="p-8">
-      <h1 className="text-2xl font-bold mb-4">Contacts</h1>
-      <div className="overflow-x-auto">
-        <table className="min-w-full border border-gray-300 text-sm">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="border px-3 py-2 text-left">ID</th>
-              <th className="border px-3 py-2 text-left">Name</th>
-              <th className="border px-3 py-2 text-left">Email</th>
-              <th className="border px-3 py-2 text-left">Subject</th>
-              <th className="border px-3 py-2 text-left">Message</th>
-              <th className="border px-3 py-2 text-left">Status</th>
-              <th className="border px-3 py-2 text-left">Created At</th>
-              <th className="border px-3 py-2 text-left">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {contacts.map((c) => (
-              <tr key={c.id}>
-                <td className="border px-3 py-2">{c.id}</td>
-                <td className="border px-3 py-2">{c.name}</td>
-                <td className="border px-3 py-2">{c.email}</td>
-                <td className="border px-3 py-2">{c.subject}</td>
-                <td className="border px-3 py-2 whitespace-pre-wrap">{c.message}</td>
-                <td className="border px-3 py-2">
-                  <StatusSelect contactId={c.id} status={c.status} />
-                </td>
-                <td className="border px-3 py-2">{c.created_at}</td>
-                <td className="border px-3 py-2">
-                  <DeleteButton contactId={c.id} />
-                </td>
+    <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* ヘッダー: タイトル + 統計バッジ */}
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-xl font-bold text-slate-800">問い合わせ管理</h1>
+        <div className="flex gap-2">
+          <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full">
+            全体 {contacts.length}
+          </span>
+          <span className="bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-1 rounded-full">
+            未対応 {pendingCount}
+          </span>
+        </div>
+      </div>
+
+      {/* テーブル: 白背景カード内に配置 */}
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th className="px-4 py-3">名前</th>
+                <th className="px-4 py-3">件名</th>
+                <th className="px-4 py-3">メール</th>
+                <th className="px-4 py-3">ステータス</th>
+                <th className="px-4 py-3">受信日</th>
+                <th className="px-4 py-3">操作</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {contacts.map((c) => (
+                <tr key={c.id} className="hover:bg-slate-50">
+                  <td className="px-4 py-3 font-medium text-slate-800">{c.name}</td>
+                  <td className="px-4 py-3 text-slate-600">{c.subject}</td>
+                  <td className="px-4 py-3 text-slate-600">{c.email}</td>
+                  <td className="px-4 py-3">
+                    <StatusSelect contactId={c.id} status={c.status} />
+                  </td>
+                  <td className="px-4 py-3 text-slate-400 text-xs">
+                    {new Date(c.created_at).toLocaleDateString("ja-JP")}
+                  </td>
+                  <td className="px-4 py-3">
+                    <DeleteButton contactId={c.id} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </main>
   );

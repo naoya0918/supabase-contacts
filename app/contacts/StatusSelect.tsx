@@ -1,8 +1,7 @@
 "use client";
 
-// このコンポーネントはブラウザ側で動く Client Component。
-// セレクトボックスの onChange イベントで Server Action を呼び出すために
-// クライアント側の JS が必要なので "use client" を付けている。
+// ステータスを変更するセレクトボックス
+// useTransition で Server Action 呼び出し中の pending 状態を管理する
 
 import { useTransition } from "react";
 import { updateContactStatus } from "./actions";
@@ -13,10 +12,14 @@ type Props = {
   status: ContactStatus;
 };
 
-// status を変更するためのセレクトボックス
-// useTransition を使う理由:
-//   Server Action を呼んでいる間の "pending" 状態を React が管理してくれ、
-//   UI をブロックせずに更新中のフラグ(isPending)を取り出せる。
+// ステータスに応じたバッジ色を返すヘルパー
+// Tailwind のクラスをステータスごとに定義し、セレクトボックスの見た目を変える
+const statusStyles: Record<ContactStatus, string> = {
+  "未対応": "bg-amber-100 text-amber-800",
+  "対応中": "bg-blue-100 text-blue-700",
+  "完了": "bg-emerald-100 text-emerald-700",
+};
+
 export default function StatusSelect({ contactId, status }: Props) {
   const [isPending, startTransition] = useTransition();
 
@@ -24,7 +27,6 @@ export default function StatusSelect({ contactId, status }: Props) {
     const next = e.target.value as ContactStatus;
     startTransition(async () => {
       const res = await updateContactStatus(contactId, next);
-      // エラー時はシンプルに alert で通知（トーストは将来拡張）
       if (res.error) {
         alert(`更新に失敗しました: ${res.error}`);
       }
@@ -36,7 +38,7 @@ export default function StatusSelect({ contactId, status }: Props) {
       value={status}
       onChange={handleChange}
       disabled={isPending}
-      className="border rounded px-2 py-1 text-sm disabled:opacity-50"
+      className={`text-xs font-semibold rounded-full px-3 py-1 border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${statusStyles[status]}`}
     >
       <option value="未対応">未対応</option>
       <option value="対応中">対応中</option>
