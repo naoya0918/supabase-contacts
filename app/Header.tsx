@@ -32,11 +32,13 @@ export default function Header() {
         <div className="flex gap-6">
           {navLinks.map((link) => {
             // 現在のパスと一致するリンクをアクティブ状態にする
-            // "/" は完全一致、それ以外は前方一致で判定
+            // "/" は完全一致、それ以外は「完全一致 or /で始まるサブパス」で判定
+            // こうしないと /contacts にいるとき /contact もアクティブになるバグが出る
             const isActive =
               link.href === "/"
                 ? pathname === "/"
-                : pathname.startsWith(link.href);
+                : pathname === link.href ||
+                  pathname.startsWith(link.href + "/");
 
             return (
               <Link
@@ -44,8 +46,8 @@ export default function Header() {
                 href={link.href}
                 className={
                   isActive
-                    ? "text-sm font-semibold text-blue-500"
-                    : "text-sm text-slate-500 hover:text-slate-800"
+                    ? "text-sm font-semibold text-blue-500 transition-colors"
+                    : "text-sm text-slate-500 hover:text-slate-800 transition-colors"
                 }
               >
                 {link.label}
