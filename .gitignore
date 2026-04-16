@@ -42,3 +42,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# プロジェクト個別のCLAUDE.mdは使わず、親ディレクトリのものを正とする
+CLAUDE.md
